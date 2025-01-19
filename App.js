@@ -1,14 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { AnimatedCircularProgress } from "react-native-circular-progress";
 
 // Twilio backend endpoint
-const BACKEND_URL = "https://wisecall-production.up.railway.app/";
+const BACKEND_URL = "https://your-backend-url.com";
 
 export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState("");
-  const [scamProbability, setScamProbability] = useState(0);
+  const [scamProbability, setScamProbability] = useState(0); // Value between 0 and 1
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Dummy update for scam probability every 2 seconds
+    if (isRecording) {
+      const interval = setInterval(() => {
+        setScamProbability((prev) =>
+          prev >= 1 ? 0 : Math.min(prev + Math.random() * 0.2, 1)
+        );
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isRecording]);
 
   const startTwilioRecording = async () => {
     try {
@@ -16,13 +29,13 @@ export default function App() {
       setIsLoading(true);
 
       // Call your backend to initiate Twilio call recording
-      const response = await fetch(`${BACKEND_URL}/start-twilio-recording`, {
+      const response = await fetch(`${BACKEND_URL}/start-recording`, {
         method: "POST",
       });
 
       if (!response.ok) throw new Error("Failed to start Twilio recording");
 
-      Alert.alert("Recording started", "Your call can now be recorded. ");
+      Alert.alert("Recording started", "Your call can now be recorded.");
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Could not start recording.");
@@ -36,19 +49,23 @@ export default function App() {
       setIsLoading(true);
 
       // Call your backend to stop Twilio recording
-      const response = await fetch(`${BACKEND_URL}/stop-twilio-recording`, {
+      const response = await fetch(`${BACKEND_URL}/stop-recording`, {
         method: "POST",
       });
 
       if (!response.ok) throw new Error("Failed to stop Twilio recording");
 
-      Alert.alert("Recording stopped", "Recording has been stopped. Full transcription and analysis will be available shortly.");
+      Alert.alert(
+        "Recording stopped",
+        "Recording has been stopped. Full transcription and analysis will be available shortly."
+      );
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Could not stop recording.");
     } finally {
       setIsRecording(false);
       setIsLoading(false);
+      setScamProbability(0); // Reset scam probability
     }
   };
 
@@ -74,16 +91,52 @@ export default function App() {
         </Text>
       </TouchableOpacity>
 
-      {transcription ? (
+      {isRecording && (
+        <View style={styles.analysis}>
+          <AnimatedCircularProgress
+            size={150}
+            width={15}
+            fill={scamProbability * 100} // Convert to percentage
+            tintColor={
+              scamProbability > 0.7
+                ? "#f44336" // High-risk (red)
+                : scamProbability > 0.4
+                ? "#FFA000" // Medium-risk (orange)
+                : "#4CAF50" // Low-risk (green)
+            }
+            backgroundColor="#ddd"
+          >
+            {(fill) => (
+              <Text style={styles.probabilityValue}>
+                {Math.round(scamProbability * 100)}%
+              </Text>
+            )}
+          </AnimatedCircularProgress>
+
+          <Text style={styles.probability}>
+            Scam Probability:{" "}
+            <Text
+              style={[
+                styles.probabilityValue,
+                scamProbability > 0.7
+                  ? styles.highRisk
+                  : scamProbability > 0.4
+                  ? styles.mediumRisk
+                  : styles.lowRisk,
+              ]}
+            >
+              {Math.round(scamProbability * 100)}%
+            </Text>
+          </Text>
+        </View>
+      )}
+
+      {transcription && (
         <View style={styles.results}>
           <Text style={styles.heading}>Live Transcription:</Text>
           <Text style={styles.transcription}>{transcription}</Text>
-
-          <Text style={styles.heading}>
-            Scam Probability: {Math.round(scamProbability * 100)}%
-          </Text>
         </View>
-      ) : null}
+      )}
     </View>
   );
 }
@@ -91,84 +144,89 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    alignItems: "center",
+    justifyContent: "flex-start",
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 60,
     marginBottom: 40,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     padding: 20,
     borderRadius: 50,
     width: 200,
     height: 200,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   recording: {
-    backgroundColor: '#f44336',
+    backgroundColor: "#f44336",
   },
   loading: {
-    backgroundColor: '#FFA000',
+    backgroundColor: "#FFA000",
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   analysis: {
     marginTop: 30,
+    alignItems: "center",
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 15,
-    width: '100%',
+    width: "100%",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
   },
-  heading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
   probability: {
     fontSize: 16,
-    marginBottom: 15,
+    marginTop: 20,
+    textAlign: "center",
   },
   probabilityValue: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   highRisk: {
-    color: '#f44336',
+    color: "#f44336",
   },
   mediumRisk: {
-    color: '#FFA000',
+    color: "#FFA000",
   },
   lowRisk: {
-    color: '#4CAF50',
+    color: "#4CAF50",
   },
-  transcriptLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  results: {
+    marginTop: 30,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 15,
+    width: "100%",
+    elevation: 2,
   },
-  transcript: {
+  heading: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  transcription: {
     fontSize: 14,
-    fontStyle: 'italic',
+    fontStyle: "italic",
     lineHeight: 20,
-  }
+  },
 });
