@@ -22,7 +22,7 @@ export default function App() {
 
       if (!response.ok) throw new Error("Failed to start Twilio recording");
 
-      Alert.alert("Recording started", "Twilio is now recording your call.");
+      Alert.alert("Recording started", "Your call can now be recorded. ");
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Could not start recording.");
@@ -42,7 +42,7 @@ export default function App() {
 
       if (!response.ok) throw new Error("Failed to stop Twilio recording");
 
-      Alert.alert("Recording stopped", "Twilio call recording has ended.");
+      Alert.alert("Recording stopped", "Recording has been stopped. Full transcription and analysis will be available shortly.");
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Could not stop recording.");
