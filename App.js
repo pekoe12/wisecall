@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 
 // Twilio backend endpoint
-const BACKEND_URL = "https://your-backend-url.com";
+const BACKEND_URL = "https://wisecall-production.up.railway.app/";
 
 export default function App() {
   const [isRecording, setIsRecording] = useState(false);
