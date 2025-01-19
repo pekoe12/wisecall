@@ -1,70 +1,89 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+
+// Twilio backend endpoint
+const BACKEND_URL = "https://your-backend-url.com";
 
 export default function App() {
   const [isRecording, setIsRecording] = useState(false);
+  const [transcription, setTranscription] = useState("");
+  const [scamProbability, setScamProbability] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
 
-  // Mock function to simulate recording and analysis
-  const handlePress = async () => {
-    if (!isRecording) {
-      // Start "recording"
+  const startTwilioRecording = async () => {
+    try {
       setIsRecording(true);
-    } else {
-      // Stop "recording" and show mock analysis
-      setIsRecording(false);
       setIsLoading(true);
-      
-      // Simulate API delay
-      setTimeout(() => {
-        setAnalysis({
-          transcript: "Hello, this is your bank calling about your account security. We need your immediate attention.",
-          spam_probability: 0.89
-        });
-        setIsLoading(false);
-      }, 2000);
+
+      // Call your backend to initiate Twilio call recording
+      const response = await fetch(`${BACKEND_URL}/start-twilio-recording`, {
+        method: "POST",
+      });
+
+      if (!response.ok) throw new Error("Failed to start Twilio recording");
+
+      Alert.alert("Recording started", "Twilio is now recording your call.");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not start recording.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const stopTwilioRecording = async () => {
+    try {
+      setIsLoading(true);
+
+      // Call your backend to stop Twilio recording
+      const response = await fetch(`${BACKEND_URL}/stop-twilio-recording`, {
+        method: "POST",
+      });
+
+      if (!response.ok) throw new Error("Failed to stop Twilio recording");
+
+      Alert.alert("Recording stopped", "Twilio call recording has ended.");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not stop recording.");
+    } finally {
+      setIsRecording(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Spam Call Detector</Text>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[
-          styles.button, 
+          styles.button,
           isRecording ? styles.recording : null,
-          isLoading ? styles.loading : null
+          isLoading ? styles.loading : null,
         ]}
-        onPress={handlePress}
+        onPress={isRecording ? stopTwilioRecording : startTwilioRecording}
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Analyzing...' : 
-           isRecording ? 'Stop Recording' : 
-           'Start Recording'}
+          {isLoading
+            ? "Processing..."
+            : isRecording
+            ? "Stop Recording"
+            : "Start Recording"}
         </Text>
       </TouchableOpacity>
 
-      {analysis && (
-        <View style={styles.analysis}>
-          <Text style={styles.heading}>Analysis Results:</Text>
-          <Text style={styles.probability}>
-            Spam Probability: 
-            <Text style={[
-              styles.probabilityValue,
-              analysis.spam_probability > 0.7 ? styles.highRisk : 
-              analysis.spam_probability > 0.4 ? styles.mediumRisk : 
-              styles.lowRisk
-            ]}>
-              {' '}{(analysis.spam_probability * 100).toFixed(1)}%
-            </Text>
+      {transcription ? (
+        <View style={styles.results}>
+          <Text style={styles.heading}>Live Transcription:</Text>
+          <Text style={styles.transcription}>{transcription}</Text>
+
+          <Text style={styles.heading}>
+            Scam Probability: {Math.round(scamProbability * 100)}%
           </Text>
-          <Text style={styles.transcriptLabel}>Call Transcript:</Text>
-          <Text style={styles.transcript}>{analysis.transcript}</Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
